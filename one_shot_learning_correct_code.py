@@ -31,8 +31,10 @@ x_test /= 255           # normalize the pixel intensities
 def make_pairs(x, y):
     
     num_classes = max(y) + 1  # finding max number of different classes will be made
-    digit_indices = [np.where(y == i)[0] for i in range(num_classes)]
-
+    digit_indices = [np.where(y == i)[0] for i in range(num_classes)]    ''' generate vectors containing 1 infront of class and rest zero
+                                                                            like if A belongs to class 1 and there are 5 classes 0,1,2,3,4
+                                                                            [0,1,0,0,0]
+                                                                           '''
     pairs = []
     labels = []
 
@@ -40,14 +42,14 @@ def make_pairs(x, y):
         # add a matching example
         x1 = x[idx1]
         label1 = y[idx1]
-        idx2 = random.choice(digit_indices[label1])
+        idx2 = random.choice(digit_indices[label1])  # randomly select pairs to preprocess data for few shot learning
         x2 = x[idx2]
         
         pairs += [[x1, x2]]
-        labels += [1]
+        labels += [1]  # if the two images belong to same class make it 1
     
-        # add a not matching example
-        label2 = random.randint(0, num_classes-1)
+        # add a not matching example 
+        label2 = random.randint(0, num_classes-1)  # randomly select pairs to preprocess data for few shot learning
         while label2 == label1:
             label2 = random.randint(0, num_classes-1)
 
@@ -55,17 +57,17 @@ def make_pairs(x, y):
         x2 = x[idx2]
         
         pairs += [[x1, x2]]
-        labels += [0]
+        labels += [0]           # if the two images belong to same class make it 1
 
-    return np.array(pairs), np.array(labels)
+    return np.array(pairs), np.array(labels)  # return pairs and their labels of data
 
-pairs_train, labels_train = make_pairs(x_train, y_train)
-pairs_test, labels_test = make_pairs(x_test, y_test)
+pairs_train, labels_train = make_pairs(x_train, y_train)  # make pairs for training 
+pairs_test, labels_test = make_pairs(x_test, y_test)   # make pairs for testing
 
-plt.imshow(pairs_train[400,1])
+plt.imshow(pairs_train[400,1])  # see images for pairs 
 print(labels_train[4])
 
-seq1 = Sequential()
+seq1 = Sequential()   # build model for few shot learning
 seq1.add(Flatten(input_shape=(28,28)))
 seq1.add(Dense(128, activation='relu'))
 
@@ -83,9 +85,9 @@ model.summary()
 wandb.init(project="siamese")
 model.fit([pairs_train[:,0], pairs_train[:,1]], labels_train[:], batch_size=16, epochs= 10, callbacks=[WandbCallback()])
 
-input = Input((28,28))
+input = Input((28,28))   
 x = Flatten()(input)
-x = Dense(128, activation='relu')(x)
+x = Dense(128, activation='relu')(x)    # add dense layer of neural network to the model
 dense = Model(input, x)
 
 input1 = Input((28,28))
@@ -106,7 +108,7 @@ model.fit([pairs_train[:,0], pairs_train[:,1]], labels_train[:], batch_size=16, 
 
 from keras import backend as K
 
-def euclidean_distance(vects):
+def euclidean_distance(vects):   # comparing images according to few shot learning
     x, y = vects
     sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
     return K.sqrt(K.maximum(sum_square, K.epsilon()))
